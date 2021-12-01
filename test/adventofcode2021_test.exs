@@ -17,4 +17,10 @@ defmodule Adventofcode2021Test do
     sample = Adventofcode2021.read_sample("01-b")
     assert Adventofcode2021.Day01.solve_b(sample) == 5
   end
+
+  test "day 01-b input" do
+    input = Adventofcode2021.read_input("01-b")
+    output = Adventofcode2021.Day01.solve_b(input) |> Adventofcode2021.write_output("01-b")
+    assert output == :ok
+  end
 end
