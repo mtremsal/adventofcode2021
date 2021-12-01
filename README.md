@@ -1,6 +1,6 @@
 # Adventofcode2021
 
-**TODO: Add description**
+Solving https://adventofcode.com/2021/ with Elixir 
 
 ## Installation
 
