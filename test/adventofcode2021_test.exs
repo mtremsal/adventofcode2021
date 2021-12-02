@@ -35,4 +35,16 @@ defmodule Adventofcode2021Test do
     output = Adventofcode2021.Day02.solve_a(input) |> Adventofcode2021.write_output("02-a")
     assert output == :ok
   end
+
+  test "day 02-b sample" do
+    sample = Adventofcode2021.read_sample("02-b")
+    {depth, position} = Adventofcode2021.Day02.solve_b(sample)
+    assert depth * position == 900
+  end
+
+  test "day 02-b input" do
+    input = Adventofcode2021.read_input("02-b")
+    output = Adventofcode2021.Day02.solve_b(input) |> Adventofcode2021.write_output("02-b")
+    assert output == :ok
+  end
 end
