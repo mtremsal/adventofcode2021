@@ -26,6 +26,7 @@ defmodule Adventofcode2021Test do
 
   test "day 02-a sample" do
     sample = Adventofcode2021.read_sample("02-a")
-    assert Adventofcode2021.Day02.solve_a(sample) == 150
+    {depth, position} = Adventofcode2021.Day02.solve_a(sample)
+    assert depth * position == 150
   end
 end
