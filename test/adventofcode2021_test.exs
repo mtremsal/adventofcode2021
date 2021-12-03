@@ -55,7 +55,6 @@ defmodule Adventofcode2021Test do
       Adventofcode2021.read_sample("03-a")
       |> Adventofcode2021.Day03.solve_a()
 
-    Logger.debug("result:\n#{inspect(result)}")
     {gamma, epsilon} = result
     assert gamma * epsilon == 198
   end
@@ -66,6 +65,24 @@ defmodule Adventofcode2021Test do
       |> Adventofcode2021.Day03.solve_a()
       # |> then(fn {a, b} -> a * b end)
       |> Adventofcode2021.write_output("03-a")
+
+    assert output == :ok
+  end
+
+  test "day 03-b sample" do
+    result =
+      Adventofcode2021.read_sample("03-b")
+      |> Adventofcode2021.Day03.solve_b()
+
+    {o2, co2} = result
+    assert o2 * co2 == 230
+  end
+
+  test "day 03-b input" do
+    output =
+      Adventofcode2021.read_input("03-b")
+      |> Adventofcode2021.Day03.solve_b()
+      |> Adventofcode2021.write_output("03-b")
 
     assert output == :ok
   end
