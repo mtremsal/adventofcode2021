@@ -1,0 +1,223 @@
+# Day 11
+
+## Setup
+
+```elixir
+Mix.install([
+  {:vega_lite, "~> 0.1.2"},
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+sample = """
+5483143223
+2745854711
+5264556173
+6141336146
+6357385478
+4167524645
+2176841721
+6882881134
+4846848554
+5283751526
+"""
+
+input = """
+2264552475
+7681287325
+3878781441
+6868471776
+7175255555
+7517441253
+3513418848
+4628736747
+1133155762
+8816621663
+"""
+```
+
+```elixir
+defmodule Day11 do
+  # Part A
+  def dimensions(matrix) do
+    y_max = length(matrix) - 1
+    x_max = length(matrix |> Enum.at(0)) - 1
+    {x_max, y_max}
+  end
+
+  def get_octopus(matrix, x, y) do
+    matrix |> Enum.at(y) |> Enum.at(x)
+  end
+
+  # Very inefficient. The matrix should likely be a Tuple of Tuples instead.
+  def update_octopus(matrix, x, y, value) do
+    matrix
+    |> List.update_at(y, fn row ->
+      List.update_at(row, x, fn _ -> value end)
+    end)
+  end
+
+  def increment_octopus(matrix, x, y) do
+    case get_octopus(matrix, x, y) do
+      :flashed -> matrix
+      value -> matrix |> update_octopus(x, y, value + 1)
+    end
+  end
+
+  def get_neighbors(matrix, x, y) do
+    {x_max, y_max} = dimensions(matrix)
+
+    [{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}]
+    |> Enum.map(fn {i, j} -> {i + x, j + y} end)
+    |> Enum.filter(fn {i, j} ->
+      0 <= i and i <= x_max and 0 <= j and j <= y_max
+    end)
+  end
+
+  defp find_next_full_octopus(matrix) do
+    {x_max, y_max} = dimensions(matrix)
+
+    # very inefficient
+    octopuses_at_nine =
+      for j <- 0..y_max,
+          i <- 0..x_max do
+        case get_octopus(matrix, i, j) do
+          :flashed -> false
+          value when value > 9 -> {i, j}
+          _value -> false
+        end
+      end
+
+    if(octopuses_at_nine |> Enum.any?()) do
+      octopuses_at_nine |> Enum.drop_while(&(!&1)) |> Enum.at(0)
+    else
+      :notfound
+    end
+  end
+
+  defp flash_next_full_octopus(matrix, x, y) do
+    matrix
+    |> get_neighbors(x, y)
+    |> Enum.reduce(matrix, fn {i, j}, acc -> increment_octopus(acc, i, j) end)
+    |> update_octopus(x, y, :flashed)
+  end
+
+  defp charge_each_octopus(matrix, flash_count) do
+    matrix
+    |> Enum.map(fn row -> Enum.map(row, &(&1 + 1)) end)
+    |> then(&{&1, flash_count})
+  end
+
+  defp reset_each_octopus(matrix, flash_count) do
+    matrix
+    |> Enum.map(fn row ->
+      Enum.map(row, fn
+        :flashed -> 0
+        n -> n
+      end)
+    end)
+    |> Enum.map(fn row ->
+      Enum.map(row, fn x -> min(x, 9) end)
+    end)
+    |> then(&{&1, flash_count})
+  end
+
+  defp flash_next_octopus_until_done(matrix, flash_count) do
+    case find_next_full_octopus(matrix) do
+      :notfound ->
+        {matrix, flash_count}
+
+      {x, y} ->
+        matrix
+        |> flash_next_full_octopus(x, y)
+        |> flash_next_octopus_until_done(flash_count + 1)
+    end
+  end
+
+  def step(matrix, flash_count) do
+    matrix
+    |> charge_each_octopus(flash_count)
+    |> then(fn {m, f} -> flash_next_octopus_until_done(m, f) end)
+    |> then(fn {m, f} -> reset_each_octopus(m, f) end)
+  end
+
+  def step_n(matrix, flash_count, 0), do: {matrix, flash_count}
+
+  def step_n(matrix, flash_count, n) do
+    {new_matrix, new_flash_count} = step(matrix, flash_count)
+    step_n(new_matrix, new_flash_count, n - 1)
+  end
+
+  # Part B
+  def step_until_full_flash(matrix, flash_count, n) do
+    {x_max, y_max} = dimensions(matrix)
+
+    {new_matrix, new_flash_count} = step(matrix, flash_count)
+    flash_delta = new_flash_count - flash_count
+    # IO.puts "Step #{n} has #{flash_delta} flashes"
+    if flash_delta == (x_max + 1) * (y_max + 1) do
+      n + 1
+    else
+      step_until_full_flash(new_matrix, new_flash_count, n + 1)
+    end
+  end
+end
+```
+
+## Part a
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> String.split("\n", trim: true)
+|> Enum.map(&String.graphemes/1)
+|> Enum.map(fn row ->
+  Enum.map(row, &String.to_integer/1)
+end)
+|> Day11.step_n(0, 100)
+|> elem(1)
+
+# widget =
+#   VegaLite.new(width: 400, height: 400)
+#   |> VegaLite.mark(:circle)
+#   |> VegaLite.encode_field(:x, "x", type: :ordinal)
+#   |> VegaLite.encode_field(:y, "y", type: :ordinal)
+#   |> VegaLite.encode_field(:size, "size", type: :quantitative)
+#   |> VegaLite.encode_field(:color, "size", type: :quantitative)
+#   |> Kino.VegaLite.new()
+#   |> Kino.render()
+
+# {x_max, y_max} = Day11.dimensions(initial_matrix)
+
+# 1..100
+# |> Enum.reduce(
+#   {initial_matrix, 0},
+#   fn step, {matrix, flash_count} ->
+#     points =
+#       for j <- 0..y_max,
+#           i <- 0..x_max do
+#         %{x: i, y: j, size: Day11.get_octopus(matrix, i, j)}
+#       end
+
+#     Kino.VegaLite.clear(widget)
+#     Kino.VegaLite.push_many(widget, points)
+#     Process.sleep(500)
+#     IO.puts(step)
+#     Day11.step(matrix, flash_count)
+#   end
+# )
+```
+
+## Part b
+
+```elixir
+input
+|> String.split("\n", trim: true)
+|> Enum.map(&String.graphemes/1)
+|> Enum.map(fn row ->
+  Enum.map(row, &String.to_integer/1)
+end)
+|> Day11.step_until_full_flash(0, 0)
+```
