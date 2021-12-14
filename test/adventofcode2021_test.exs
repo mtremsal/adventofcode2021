@@ -119,4 +119,36 @@ defmodule Adventofcode2021Test do
 
     assert output == :ok
   end
+
+  test "day 12-a sample" do
+    result =
+      Adventofcode2021.read_sample("12-a")
+      |> Adventofcode2021.Day12.solve_a()
+    assert result == 226
+  end
+
+  test "day 12-a input" do
+    output =
+      Adventofcode2021.read_input("12-a")
+      |> Adventofcode2021.Day12.solve_a()
+      |> Adventofcode2021.write_output("12-a")
+
+    assert output == :ok
+  end
+
+  test "day 12-b sample" do
+    result =
+      Adventofcode2021.read_sample("12-b")
+      |> Adventofcode2021.Day12.solve_b()
+    assert result == 3509
+  end
+
+  test "day 12-b input" do
+    output =
+      Adventofcode2021.read_input("12-b")
+      |> Adventofcode2021.Day12.solve_b()
+      |> Adventofcode2021.write_output("12-b")
+
+    assert output == :ok
+  end
 end
