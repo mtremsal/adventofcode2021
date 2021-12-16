@@ -156,6 +156,15 @@ defmodule Adventofcode2021Test do
     result =
       Adventofcode2021.read_sample("14-b")
       |> Adventofcode2021.Day14.solve_b()
-    assert result == 35092188189693529
+    assert result == 2188189693529
+  end
+
+  test "day 14-b input" do
+    output =
+      Adventofcode2021.read_input("14-b")
+      |> Adventofcode2021.Day14.solve_b()
+      |> Adventofcode2021.write_output("14-b")
+
+    assert output == :ok
   end
 end

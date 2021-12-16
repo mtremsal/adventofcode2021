@@ -16,83 +16,66 @@ defmodule Adventofcode2021.Day14 do
       |> Enum.at(0)
       |> String.split(["\n", " -> "], trim: true)
       |> Enum.chunk_every(2)
-      |> Enum.reduce(%{}, fn [pair | insertion], acc ->
-        Map.put(acc, pair, Enum.at(insertion, 0))
+      |> Enum.reduce(%{}, fn
+        [pair | insertion], acc ->
+          Map.put(acc, pair, Enum.at(insertion, 0))
       end)
 
     start
-    |> polymerize_n_times(instructions, 20)
-    |> String.graphemes()
-    |> Enum.frequencies()
+    |> sequence_to_pair_freqs()
+    |> polymerize_n_times(instructions, 40)
+    |> Enum.reduce(%{}, fn {<<a, _rest::binary>>, v}, acc ->
+      acc |> Map.update(<<a>>, v, &(&1 + v))
+    end)
     |> Map.values()
-    |> then(fn freqs -> Enum.max(freqs) - Enum.min(freqs) end)
+    |> Enum.min_max()
+    |> then(&((&1 |> elem(1)) - (&1 |> elem(0))))
   end
 
-  def polymerize_n_times(sequence, instructions, n) do
-    polymerize_n_times(sequence, instructions, n, Time.utc_now())
-  end
-
-  def polymerize_n_times(sequence, _instructions, 0, _timer), do: sequence
-
-  def polymerize_n_times(sequence, instructions, n, timer) do
-    IO.puts(
-      "#{n} passes remaining. Last pass took #{Time.diff(Time.utc_now(), timer, :microsecond)} ms."
-    )
-
-    polymerize_n_times(
-      polymerize_v2(sequence, instructions),
-      instructions,
-      n - 1,
-      Time.utc_now()
-    )
-  end
-
-  # Hopefully smarter implementation that keeps the stack only as big as the string itself
-  def polymerize_v2(sequence, instructions) do
-    polimerize_single_pair(sequence, instructions, "")
-  end
-
-  def polimerize_single_pair(
-        <<single>>,
-        _instructions,
-        processed_sequence
-      ) do
-    processed_sequence <> <<single>>
-  end
-
-  def polimerize_single_pair(
-        <<pair::binary-size(2), rest::binary>>,
-        instructions,
-        processed_sequence
-      ) do
-    insertion = Map.get(instructions, pair, "")
-    <<left, right::binary>> = pair
-
-    polimerize_single_pair(
-      right <> rest,
-      instructions,
-      processed_sequence <> <<left>> <> insertion
-    )
-  end
-
-  # Naive implementation that requires a huge stack
-  def polymerize_v1(sequence, instructions) do
+  def sequence_to_pair_freqs(sequence) do
     sequence
     |> String.graphemes()
-    |> Enum.chunk_every(2, 1)
+    # we append a useless 0 to the last char so we don't lose it in the count
+    |> Enum.chunk_every(2, 1, [0])
     |> Enum.map(&Enum.join/1)
-    |> Enum.map(fn
-      <<a>> ->
-        <<a>> <> <<a>>
+    |> Enum.reduce(%{}, fn pair, acc ->
+      Map.update(acc, pair, 1, &(&1 + 1))
+    end)
+  end
 
-      <<a, rest::binary>> = pair ->
-        if Map.has_key?(instructions, pair) do
-          <<a>> <> Map.fetch!(instructions, pair) <> rest
+  def polimerize_pair_freqs(pair_freqs, instructions) do
+    pair_freqs
+    |> Enum.reduce(pair_freqs, fn
+      {key, val}, acc ->
+        insert = Map.get(instructions, key)
+
+        if insert do
+          <<a, rest::binary>> = key
+
+          acc
+          |> Map.update(key, val, &(&1 - val))
+          |> Map.update(<<a>> <> insert, val, &(&1 + val))
+          |> Map.update(insert <> String.first(rest), val, &(&1 + val))
         else
-          pair
+          acc
         end
     end)
-    |> Enum.map(fn string -> String.slice(string, 0..-2) end)
-    |> Enum.join()
+  end
+
+  def polymerize_n_times(pair_freqs, instructions, n) do
+    polymerize_n_times(pair_freqs, instructions, n, Time.utc_now())
+  end
+
+  def polymerize_n_times(pair_freqs, _instructions, 0, _timer), do: pair_freqs
+
+  def polymerize_n_times(pair_freqs, instructions, n, timer) do
+    # IO.puts("#{n} passes remaining. Last pass took #{Time.diff(Time.utc_now(), timer)}s.")
+
+    polymerize_n_times(
+      polimerize_pair_freqs(pair_freqs, instructions),
+      instructions,
+      n - 1,
+      timer
+    )
   end
 end
