@@ -1,0 +1,263 @@
+# Day 16
+
+## Setup
+
+```elixir
+samples_part_a = [
+  "D2FE28",
+  "38006F45291200",
+  "EE00D40C823060",
+  "8A004A801A8002F478",
+  "620080001611562C8802118E34",
+  "C0015000016115A2E0802F182340",
+  "A0016C880162017C3686B18A3D4780"
+]
+
+samples_part_b = [
+  "C200B40A82",
+  "04005AC33890",
+  "880086C3E88112",
+  "CE00C43D881120",
+  "D8005AC2A8F0",
+  "F600BC2D8F",
+  "9C005AC2F8F0",
+  "9C0141080250320F1802104A08"
+]
+
+input =
+  "020D708041258C0B4C683E61F674A1401595CC3DE669AC4FB7BEFEE840182CDF033401296F44367F938371802D2CC9801A980021304609C431007239C2C860400F7C36B005E446A44662A2805925FF96CBCE0033C5736D13D9CFCDC001C89BF57505799C0D1802D2639801A900021105A3A43C1007A1EC368A72D86130057401782F25B9054B94B003013EDF34133218A00D4A6F1985624B331FE359C354F7EB64A8524027D4DEB785CA00D540010D8E9132270803F1CA1D416200FDAC01697DCEB43D9DC5F6B7239CCA7557200986C013912598FF0BE4DFCC012C0091E7EFFA6E44123CE74624FBA01001328C01C8FF06E0A9803D1FA3343E3007A1641684C600B47DE009024ED7DD9564ED7DD940C017A00AF26654F76B5C62C65295B1B4ED8C1804DD979E2B13A97029CFCB3F1F96F28CE43318560F8400E2CAA5D80270FA1C90099D3D41BE00DD00010B893132108002131662342D91AFCA6330001073EA2E0054BC098804B5C00CC667B79727FF646267FA9E3971C96E71E8C00D911A9C738EC401A6CBEA33BC09B8015697BB7CD746E4A9FD4BB5613004BC01598EEE96EF755149B9A049D80480230C0041E514A51467D226E692801F049F73287F7AC29CB453E4B1FDE1F624100203368B3670200C46E93D13CAD11A6673B63A42600C00021119E304271006A30C3B844200E45F8A306C8037C9CA6FF850B004A459672B5C4E66A80090CC4F31E1D80193E60068801EC056498012804C58011BEC0414A00EF46005880162006800A3460073007B620070801E801073002B2C0055CEE9BC801DC9F5B913587D2C90600E4D93CE1A4DB51007E7399B066802339EEC65F519CF7632FAB900A45398C4A45B401AB8803506A2E4300004262AC13866401434D984CA4490ACA81CC0FB008B93764F9A8AE4F7ABED6B293330D46B7969998021C9EEF67C97BAC122822017C1C9FA0745B930D9C480"
+```
+
+## Part a
+
+```elixir
+defmodule Day16 do
+  @hex_dict """
+  0 = 0000
+  1 = 0001
+  2 = 0010
+  3 = 0011
+  4 = 0100
+  5 = 0101
+  6 = 0110
+  7 = 0111
+  8 = 1000
+  9 = 1001
+  A = 1010
+  B = 1011
+  C = 1100
+  D = 1101
+  E = 1110
+  F = 1111
+  """
+
+  # Part A
+  def decode(hex_string) do
+    hex_string
+    |> hex_to_binary
+    |> parse_transmission()
+    |> tap(&IO.puts(inspect(&1)))
+  end
+
+  def sum_versions([]), do: 0
+
+  def sum_versions([%{version: version, sub_packets: sub_packets} | maps]) do
+    version + sum_versions(sub_packets) + sum_versions(maps)
+  end
+
+  def sum_versions([%{version: version} | maps]) do
+    version + sum_versions(maps)
+  end
+
+  def parse_transmission(transmission), do: parse_transmission(transmission, [])
+
+  def parse_transmission("", array_of_maps), do: array_of_maps
+
+  def parse_transmission(transmission, array_of_maps) do
+    # IO.puts("Parsing transmission: #{inspect(transmission)}")
+
+    if bin_to_hex(transmission) == 0 do
+      array_of_maps
+    else
+      {rest, map} = parse_packet(transmission)
+      parse_transmission(rest, array_of_maps ++ [map])
+    end
+  end
+
+  def parse_n_packets(transmission, n), do: parse_n_packets(transmission, n, [])
+  def parse_n_packets(transmission, 0, maps), do: {transmission, maps}
+
+  def parse_n_packets(transmission, n, maps) do
+    {rest, map} = parse_packet(transmission)
+    parse_n_packets(rest, n - 1, maps ++ [map])
+  end
+
+  def parse_packet(packet) do
+    packet
+    |> parse_version()
+    |> parse_type_id()
+    |> parse_payload()
+  end
+
+  def hex_to_bin(hex) do
+    @hex_dict
+    |> String.split(["\n", " = "], trim: true)
+    |> Enum.chunk_every(2)
+    |> Enum.reduce(%{}, fn [head | tail], acc ->
+      Map.put(acc, head, hd(tail))
+    end)
+    |> Map.fetch!(hex)
+  end
+
+  def bin_to_hex(bin) do
+    Integer.parse(bin, 2) |> elem(0)
+  end
+
+  def hex_to_binary(string), do: hex_to_binary(string, "")
+  def hex_to_binary("", response), do: response
+
+  def hex_to_binary(<<a, rest::binary>>, response) do
+    hex_to_binary(rest, response <> hex_to_bin(<<a>>))
+  end
+
+  def parse_version(<<version::binary-size(3), rest::binary>>) do
+    {rest, Map.put(%{}, :version, bin_to_hex(version))}
+  end
+
+  def parse_type_id({<<type_id::binary-size(3), rest::binary>>, map}) do
+    {rest, Map.put(map, :type_id, bin_to_hex(type_id))}
+  end
+
+  def parse_payload({payload, %{type_id: 4} = map}) do
+    parse_literal(payload, map)
+  end
+
+  def parse_payload({payload, map}) do
+    parse_operator(payload, map)
+  end
+
+  def parse_literal(string, map), do: parse_literal(string, "", map)
+
+  def parse_literal(<<"0", payload::binary>>, response, map) do
+    <<bin::binary-size(4), rest_of_transmission::binary>> = payload
+    {rest_of_transmission, Map.put(map, :literal, bin_to_hex(response <> bin))}
+  end
+
+  def parse_literal(<<"1", payload::binary>>, response, map) do
+    <<bin::binary-size(4), rest::binary>> = payload
+    parse_literal(rest, response <> bin, map)
+  end
+
+  def parse_operator(<<"0", payload::binary>>, map) do
+    <<length_in_bits::binary-size(15), rest::binary>> = payload
+    bits = bin_to_hex(length_in_bits)
+    <<sub_packets::binary-size(bits), rest_of_transmission::binary>> = rest
+    parsed_sub_packets = parse_transmission(sub_packets)
+
+    new_map =
+      map
+      # |> Map.put(:length_in_bits, bits)
+      |> Map.put(:sub_packets, parsed_sub_packets)
+
+    {rest_of_transmission, new_map}
+  end
+
+  def parse_operator(<<"1", payload::binary>>, map) do
+    <<length_in_packets::binary-size(11), rest::binary>> = payload
+    packets = bin_to_hex(length_in_packets)
+
+    {rest_of_transmission, parsed_sub_packets} = parse_n_packets(rest, packets)
+
+    new_map =
+      map
+      # |> Map.put(:length_in_packets, packets)
+      |> Map.put(:sub_packets, parsed_sub_packets)
+
+    {rest_of_transmission, new_map}
+  end
+
+  # Part B
+  def calculate(%{literal: literal}), do: literal
+
+  def calculate(%{type_id: 0, sub_packets: sub_packets}) do
+    case length(sub_packets) do
+      1 -> calculate(sub_packets)
+      _ -> Enum.sum(calculate(sub_packets))
+    end
+  end
+
+  def calculate(%{type_id: 1, sub_packets: sub_packets}) do
+    case length(sub_packets) do
+      1 -> calculate(sub_packets)
+      _ -> Enum.product(calculate(sub_packets))
+    end
+  end
+
+  def calculate(%{type_id: 2, sub_packets: sub_packets}) do
+    case length(sub_packets) do
+      1 -> calculate(sub_packets)
+      _ -> Enum.min(calculate(sub_packets))
+    end
+  end
+
+  def calculate(%{type_id: 3, sub_packets: sub_packets}) do
+    case length(sub_packets) do
+      1 -> calculate(sub_packets)
+      _ -> Enum.max(calculate(sub_packets))
+    end
+  end
+
+  def calculate(%{type_id: other, sub_packets: sub_packets}) do
+    compare(
+      sub_packets |> calculate |> Enum.at(0),
+      sub_packets |> calculate |> Enum.at(1),
+      other
+    )
+  end
+
+  def calculate([map]), do: calculate(map)
+  def calculate(maps), do: maps |> Enum.map(&calculate/1)
+
+  def compare(a, b, 5) do
+    if a > b do
+      1
+    else
+      0
+    end
+  end
+
+  def compare(a, b, 6) do
+    if a < b do
+      1
+    else
+      0
+    end
+  end
+
+  def compare(a, b, 7) do
+    if a == b do
+      1
+    else
+      0
+    end
+  end
+end
+
+# for sample <- samples_part_a do
+#   IO.puts("### Sample is: #{sample}")
+#   IO.puts("### Sum of versions is: #{inspect(sample |> Day16.decode() |> Day16.sum_versions())}")
+# end
+
+input |> Day16.decode() |> Day16.sum_versions()
+```
+
+## Part b
+
+```elixir
+# for sample <- samples_part_b do
+#   IO.puts("### Sample is: #{sample}")
+#   IO.puts("### Calculations is: #{inspect(Day16.decode(sample) |> Day16.calculate())}")
+# end
+
+input |> Day16.decode() |> Day16.calculate()
+```
