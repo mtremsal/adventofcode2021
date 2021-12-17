@@ -1,0 +1,99 @@
+# Day 17
+
+## Setup
+
+```elixir
+sample = "target area: x=20..30, y=-10..-5"
+
+input = "target area: x=241..275, y=-75..-49"
+```
+
+## Part a
+
+```elixir
+defmodule Day17 do
+  def shoot(x_vol, y_vol, x_range, y_range), do: shoot(0, 0, x_vol, y_vol, x_range, y_range, 0)
+
+  def shoot(x, y, x_vol, y_vol, x_range, y_range, y_max) do
+    # IO.puts("Probe at: #{x}, #{y}")
+    {x, y, x_vol, y_vol} = step(x, y, x_vol, y_vol)
+    y_max = max(y, y_max)
+
+    case {hit?(x, y, x_range, y_range), missed?(x, y, x_range, y_range)} do
+      {true, _} -> {:hit, y_max}
+      {_, true} -> :missed
+      _ -> shoot(x, y, x_vol, y_vol, x_range, y_range, y_max)
+    end
+  end
+
+  def step(x, y, x_vol, y_vol) do
+    x = x + x_vol
+    y = y + y_vol
+
+    x_vol =
+      case x_vol do
+        n when n > 0 -> n - 1
+        n when n < 0 -> n + 1
+        _ -> 0
+      end
+
+    y_vol = y_vol - 1
+    {x, y, x_vol, y_vol}
+  end
+
+  def hit?(x, y, {x_min, x_max}, {y_min, y_max}) do
+    x_min <= x and
+      x <= x_max and
+      y_min <= y and
+      y <= y_max
+  end
+
+  def missed?(x, y, {_x_min, x_max}, {y_min, _y_max}) do
+    x > x_max or y < y_min
+  end
+end
+
+"target area: " <> area = input
+
+ranges =
+  area
+  |> String.split(", ", trim: true)
+  |> Enum.map(fn command -> String.slice(command, 2..-1) end)
+
+x_range =
+  ranges
+  |> Enum.at(0)
+  |> String.split("..")
+  |> Enum.map(&String.to_integer/1)
+  |> List.to_tuple()
+
+{x_min, x_max} = x_range
+
+y_range =
+  ranges
+  |> Enum.at(1)
+  |> String.split("..")
+  |> Enum.map(&String.to_integer/1)
+  |> List.to_tuple()
+
+{y_min, y_max} = y_range
+
+for x <- 0..x_max,
+    y <- y_min..100 do
+  Day17.shoot(x, y, x_range, y_range)
+end
+|> Enum.reject(&(&1 == :missed))
+|> Enum.max_by(&elem(&1, 1))
+|> elem(1)
+```
+
+## Part b
+
+```elixir
+for x <- 0..x_max,
+    y <- y_min..100 do
+  Day17.shoot(x, y, x_range, y_range)
+end
+|> Enum.reject(&(&1 == :missed))
+|> Enum.count()
+```
