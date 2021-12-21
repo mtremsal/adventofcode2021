@@ -91,6 +91,7 @@ defmodule Adventofcode2021Test do
     result =
       Adventofcode2021.read_sample("06-a")
       |> Adventofcode2021.Day06.solve_a()
+
     assert result == 5934
   end
 
@@ -108,7 +109,8 @@ defmodule Adventofcode2021Test do
     result =
       Adventofcode2021.read_sample("06-b")
       |> Adventofcode2021.Day06.solve_b()
-    assert result == 26984457539
+
+    assert result == 26_984_457_539
   end
 
   test "day 06-b input" do
@@ -124,6 +126,7 @@ defmodule Adventofcode2021Test do
     result =
       Adventofcode2021.read_sample("12-a")
       |> Adventofcode2021.Day12.solve_a()
+
     assert result == 226
   end
 
@@ -140,6 +143,7 @@ defmodule Adventofcode2021Test do
     result =
       Adventofcode2021.read_sample("12-b")
       |> Adventofcode2021.Day12.solve_b()
+
     assert result == 3509
   end
 
@@ -156,7 +160,8 @@ defmodule Adventofcode2021Test do
     result =
       Adventofcode2021.read_sample("14-b")
       |> Adventofcode2021.Day14.solve_b()
-    assert result == 2188189693529
+
+    assert result == 2_188_189_693_529
   end
 
   test "day 14-b input" do
@@ -172,6 +177,7 @@ defmodule Adventofcode2021Test do
     result =
       Adventofcode2021.read_sample("15-b")
       |> Adventofcode2021.Day15.solve_b()
+
     assert result == 315
   end
 
@@ -181,6 +187,23 @@ defmodule Adventofcode2021Test do
       Adventofcode2021.read_input("15-b")
       |> Adventofcode2021.Day15.solve_b()
       |> Adventofcode2021.write_output("15-b")
+
+    assert output == :ok
+  end
+
+  test "day 21-a sample" do
+    result =
+      Adventofcode2021.read_sample("21-a")
+      |> Adventofcode2021.Day21.solve_a()
+
+    assert result == 739_785
+  end
+
+  test "day 21-a input" do
+    output =
+      Adventofcode2021.read_input("21-a")
+      |> Adventofcode2021.Day21.solve_a()
+      |> Adventofcode2021.write_output("21-a")
 
     assert output == :ok
   end
