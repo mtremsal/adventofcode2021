@@ -215,4 +215,14 @@ defmodule Adventofcode2021Test do
 
     assert result == 12521
   end
+
+  @tag timeout: :infinity
+  test "day 23-a input" do
+    output =
+      Adventofcode2021.read_input("23-a")
+      |> Adventofcode2021.Day23.solve_a()
+      |> Adventofcode2021.write_output("23-a")
+
+    assert output == :ok
+  end
 end

@@ -11,9 +11,7 @@ defmodule Adventofcode2021.Day23 do
     file
     |> String.replace([" ", "#", ".", "\n"], "")
     |> init_maze()
-    # |> legal_moves(0)
-    # |> tap(&(&1 |> Enum.map(fn {maze, _score} -> display(maze) end)))
-    |> then(&step([{&1, 0}], 1_000_000))
+    |> then(&step([{&1, 0}], 20000))
   end
 
   def empty_maze() do
@@ -60,38 +58,63 @@ defmodule Adventofcode2021.Day23 do
     )
   end
 
-  def slow_step([{maze, cost} | states], min_score) do
-    new_states =
-      legal_moves(maze, cost)
-      |> Enum.reject(fn {_maze, cost} -> cost > min_score end)
+  def fingerprint(maze) do
+    keys =
+      maze
+      |> Map.keys()
+      |> Enum.sort()
 
-    Logger.debug("Stepping through #{Enum.count(new_states)} states. Min score is: #{min_score}.")
-    # Logger.debug("From initial state:")
-    # display(maze)
-    # Logger.debug("Just added states:")
-    # Logger.debug(new_states |> Enum.map(fn {maze, _score} -> display(maze) end))
+    for key <- keys do
+      maze |> Map.fetch!(key) |> Map.get(:contains)
+    end
+    |> Enum.map(fn
+      nil -> " "
+      a -> a
+    end)
+    |> Enum.join()
+  end
+
+  def step([], min_score), do: min_score
+
+  def step(states, min_score) do
+    new_states =
+      states
+      |> Enum.sort_by(fn {maze, _cost} -> correct_keys(maze) |> Enum.count() end, :desc)
+      |> Enum.take(10000)
+      |> Enum.map(fn {maze, cost} -> legal_moves(maze, cost) end)
+      |> Enum.concat()
+
+    backlog =
+      (new_states ++ states)
+      |> Enum.reject(fn {_maze, cost} -> cost > min_score end)
+      |> Enum.sort_by(fn {_maze, cost} -> cost end, :asc)
+      |> Enum.uniq_by(fn {maze, _cost} -> fingerprint(maze) end)
+
+    Logger.debug(
+      "Stepping through #{Enum.count(new_states)} out of #{Enum.count(states)} states. Min score is: #{min_score}."
+    )
 
     winners? =
       new_states
       |> Enum.filter(fn {maze, _cost} -> winning?(maze) end)
 
     losers =
-      new_states
+      backlog
       |> Enum.reject(fn {maze, _cost} -> winning?(maze) end)
 
     if winners? |> Enum.any?() do
-      slow_step(
-        losers ++ states,
+      step(
+        losers,
         min(min_score, winners? |> Enum.map(fn {_maze, score} -> score end) |> Enum.min())
       )
     else
-      slow_step(new_states ++ states, min_score)
+      step(backlog, min_score)
     end
   end
 
-  def step([], min_score), do: min_score
+  def quick_step([], min_score), do: min_score
 
-  def step(states, min_score) do
+  def quick_step(states, min_score) do
     states_by_solves =
       states
       |> Enum.group_by(fn {maze, _cost} -> correct_keys(maze) |> Enum.count() end)
@@ -116,7 +139,7 @@ defmodule Adventofcode2021.Day23 do
       |> Enum.reject(fn {_maze, cost} -> cost > min_score end)
 
     Logger.debug(
-      "Stepping through #{Enum.count(new_states)} states. Min score is: #{min_score}. #{solves} letters solved."
+      "Stepping through #{Enum.count(new_states)} out of #{Enum.count(states)} states. Min score is: #{min_score}."
     )
 
     winners? =
@@ -128,12 +151,12 @@ defmodule Adventofcode2021.Day23 do
       |> Enum.reject(fn {maze, _cost} -> winning?(maze) end)
 
     if winners? |> Enum.any?() do
-      step(
+      quick_step(
         losers ++ other_groups,
         min(min_score, winners? |> Enum.map(fn {_maze, score} -> score end) |> Enum.min())
       )
     else
-      step(new_states ++ other_groups, min_score)
+      quick_step(new_states ++ other_groups, min_score)
     end
   end
 
